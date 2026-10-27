@@ -1,6 +1,6 @@
 import { useDispatch, useSelector } from "react-redux";
 import { toggleFavorite } from "../redux/favoritesSlice";
-import { Link } from "react-router-dom";
+
 
 function CamperCard({ camper }) {
   const dispatch = useDispatch();
@@ -15,7 +15,13 @@ function CamperCard({ camper }) {
         <div className="camper-card__header">
           <h2>{camper.name}</h2>
           <div className="camper-card__price">
-            <span>€{Number(camper.price).toLocaleString("en-US")}</span>
+            <span>
+              €{Number(camper.price).toLocaleString("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+                useGrouping: false,
+              })}
+            </span>
             <button type="button" className={`favorite-button${isFavorite ? " is-favorite" : ""}`} onClick={() => dispatch(toggleFavorite(camper.id))} aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"} aria-pressed={isFavorite}>
               {isFavorite ? "♥" : "♡"}
             </button>
@@ -31,7 +37,17 @@ function CamperCard({ camper }) {
           {camper.engine && <span>⚙ {camper.engine}</span>}
           {camper.form && <span>▣ {camper.form === "panelTruck" ? "Panel van" : camper.form}</span>}
         </div>
-        <Link className="show-more-button" to={`/catalog/${camper.id}`}>Show more</Link>
+   
+        <a
+          className="show-more-button"
+          href={`${window.location.origin}/catalog/${camper.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Show more
+        </a>
+       
+
       </div>
     </article>
   );
