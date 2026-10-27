@@ -3,195 +3,135 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchCampers, clearCampers } from "../redux/campersSlice";
 import CamperCard from "../components/CamperCard";
 
+const vehicleForms = [
+  { label: "Alcove", value: "alcove" },
+  { label: "Panel Van", value: "panelTruck" },
+  { label: "Integrated", value: "fullyIntegrated" },
+  { label: "Semi Integrated", value: "semiIntegrated" },
+];
+const engines = ["Diesel", "Petrol", "Hybrid", "Electric"];
+const transmissions = ["Automatic", "Manual"];
+
+function ChoiceGroup({ title, name, options, value, onChange }) {
+  return (
+    <fieldset className="filter-group">
+      <legend>{title}</legend>
+      {options.map((option) => {
+        const item = typeof option === "string" ? { label: option, value: option.toLowerCase() } : option;
+        return (
+          <label className="filter-choice" key={`${name}-${item.label}`}>
+            <input
+              type="radio"
+              name={name}
+              value={item.value}
+              checked={value === item.value}
+              onChange={(event) => onChange(event.target.value)}
+            />
+            <span>{item.label}</span>
+          </label>
+        );
+      })}
+    </fieldset>
+  );
+}
+
+function EmptyStateIllustration() {
+  return <img className="empty-illustration" src="/empty-campers.png" alt="Camper parked beneath mountains" />;
+}
 function CatalogPage() {
-    const dispatch = useDispatch();
+  const dispatch = useDispatch();
+  const { items, total, page, isLoading, isLoadingMore, error } = useSelector((state) => state.campers);
+  const [location, setLocation] = useState("");
+  const [vehicleType, setVehicleType] = useState("");
+  const [engine, setEngine] = useState("");
+  const [transmission, setTransmission] = useState("");
+  const limit = 4;
 
-    const {
-        items,
-        total,
-        page,
-        isLoading,
-        isLoadingMore,
-        error,
-    } = useSelector((state) => state.campers);
+  const getFilterParams = (pageNumber = 1) => {
+    const params = { page: pageNumber, limit };
+    if (location.trim()) params.location = location.trim();
+    if (vehicleType) params.form = vehicleType;
+    if (engine) params.engine = engine;
+    if (transmission) params.transmission = transmission;
+    return params;
+  };
 
-    const [location, setLocation] = useState("");
-    const [vehicleType, setVehicleType] = useState("");
-    const [equipment, setEquipment] = useState([]);
+  useEffect(() => {
+    dispatch(fetchCampers({ page: 1, limit }));
+  }, [dispatch]);
 
-    const limit = 4;
-    const getFilterParams = (pageNumber = 1) => {
-        const params = {
-            page: pageNumber,
-            limit,
-        };
+  const handleSearch = () => {
+    dispatch(clearCampers());
+    dispatch(fetchCampers(getFilterParams(1)));
+  };
 
-        if (location.trim()) {
-            params.location = location.trim();
-        }
+  const handleReset = () => {
+    setLocation("");
+    setVehicleType("");
+    setEngine("");
+    setTransmission("");
+    dispatch(clearCampers());
+    dispatch(fetchCampers({ page: 1, limit }));
+  };
 
-        if (vehicleType) {
-            params.form = vehicleType;
-        }
+  const hasMore = items.length < total;
 
-        equipment.forEach((item) => {
-            params[item] = "true";
-        });
+  return (
+    <main className="catalog-page">
+      <aside className="filters" aria-label="Camper filters">
+        <label className="location-label" htmlFor="location">Location</label>
+        <div className="location-field">
+          <span aria-hidden="true">⌖</span>
+          <input
+            id="location"
+            type="text"
+            placeholder="City, Ukraine"
+            value={location}
+            onChange={(event) => setLocation(event.target.value)}
+          />
+        </div>
+        <h2 className="filters-title">Filters</h2>
+        <ChoiceGroup title="Vehicle form" name="vehicleType" options={vehicleForms} value={vehicleType} onChange={setVehicleType} />
+        <ChoiceGroup title="Engine" name="engine" options={engines} value={engine} onChange={setEngine} />
+        <ChoiceGroup title="Transmission" name="transmission" options={transmissions} value={transmission} onChange={setTransmission} />
+        <button className="filter-search" type="button" onClick={handleSearch}>Search</button>
+        <button className="filter-reset" type="button" onClick={handleReset}><span aria-hidden="true">×</span> Clear filters</button>
+      </aside>
 
-        return params;
-    };
-
-    useEffect(() => {
-        dispatch(
-            fetchCampers({
-                page: 1,
-                limit,
-            })
-        );
-    }, [dispatch]);
-
-    const handleEquipmentChange = (event) => {
-        const { value, checked } = event.target;
-
-        setEquipment((previousEquipment) =>
-            checked
-                ? [...previousEquipment, value]
-                : previousEquipment.filter((item) => item !== value)
-        );
-    };
-
-    const handleSearch = () => {
-        dispatch(clearCampers());
-        dispatch(fetchCampers(getFilterParams(1)));
-    };
-
-    const handleLoadMore = () => {
-        dispatch(fetchCampers(getFilterParams(page + 1)));
-    };
-    const hasMore = items.length < total;
-
-    if (isLoading && items.length === 0) {
-        return <p>Loading campers...</p>;
-    }
-
-    if (error && items.length === 0) {
-        return <p>{error}</p>;
-    }
-
-    return (
-        <main className="catalog-page">
-            <aside className="filters">
-                <label htmlFor="location">Location</label>
-
-                <input
-                    id="location"
-                    type="text"
-                    placeholder="City"
-                    value={location}
-                    onChange={(event) => setLocation(event.target.value)}
-                />
-
-                <h3>Vehicle type</h3>
-
-                <label>
-                    <input
-                        type="radio"
-                        name="vehicleType"
-                        value="panelTruck"
-                        checked={vehicleType === "panelTruck"}
-                        onChange={(event) => setVehicleType(event.target.value)}
-                    />
-                    Van
-                </label>
-
-                <label>
-                    <input
-                        type="radio"
-                        name="vehicleType"
-                        value="fullyIntegrated"
-                        checked={vehicleType === "fullyIntegrated"}
-                        onChange={(event) => setVehicleType(event.target.value)}
-                    />
-                    Fully Integrated
-                </label>
-
-                <label>
-                    <input
-                        type="radio"
-                        name="vehicleType"
-                        value="alcove"
-                        checked={vehicleType === "alcove"}
-                        onChange={(event) => setVehicleType(event.target.value)}
-                    />
-                    Alcove
-                </label>
-
-                <h3>Vehicle equipment</h3>
-
-                {[
-                    { label: "AC", value: "AC" },
-                    { label: "Bathroom", value: "bathroom" },
-                    { label: "Kitchen", value: "kitchen" },
-                    { label: "TV", value: "TV" },
-                    { label: "Refrigerator", value: "refrigerator" },
-                ].map((item) => (
-                    <label key={item.value}>
-                        <input
-                            type="checkbox"
-                            value={item.value}
-                            checked={equipment.includes(item.value)}
-                            onChange={handleEquipmentChange}
-                        />
-                        {item.label}
-                    </label>
-                ))}
-
-                <button type="button" onClick={handleSearch}>
-                    Search
-                </button>
-
-                <button
-                    type="button"
-                    onClick={() => {
-                        setLocation("");
-                        setVehicleType("");
-                        setEquipment([]);
-                        dispatch(clearCampers());
-                        dispatch(fetchCampers({ page: 1, limit }));
-                    }}
-                >
-                    Reset filters
-                </button>
-            </aside>
-
-            <section className="catalog-results">
-                <h1>Campers</h1>
-
-                {items.length === 0 && !isLoading ? (
-                    <p>No campers found. Try changing your filters.</p>
-                ) : (
-                    <div className="camper-list">
-                        {items.map((camper) => (
-                            <CamperCard key={camper.id} camper={camper} />
-                        ))}
-                    </div>
-                )}
-
-                {error && <p role="alert">{error}</p>}
-
-                {hasMore && items.length > 0 && (
-                    <button
-                        className="load-more-button"
-                        type="button"
-                        onClick={handleLoadMore}
-                        disabled={isLoadingMore}
-                    >
-                        {isLoadingMore ? "Loading..." : "Load More"}
-                    </button>
-                )}
-            </section>
-        </main>
-    );
+      <section className="catalog-results" aria-label="Available campers">
+        {isLoading && items.length === 0 ? (
+          <div className="catalog-state" role="status"><span className="loading-spinner" />Loading campers...</div>
+        ) : error && items.length === 0 ? (
+          <p className="catalog-state" role="alert">{error}</p>
+        ) : items.length === 0 ? (
+          <div className="catalog-empty">
+            <EmptyStateIllustration />
+            <h1>No campers found</h1>
+            <p>We couldn’t find any campers that match your filters.<br />Try adjusting your search or clearing some filters.</p>
+            <div className="catalog-empty__actions">
+              <button type="button" className="filter-reset" onClick={handleReset}><span aria-hidden="true">×</span> Clear filters</button>
+              <button type="button" className="view-all-button" onClick={handleReset}>View all campers</button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="camper-list">
+              {items.map((camper) => <CamperCard key={camper.id} camper={camper} />)}
+            </div>
+            {error && <p role="alert">{error}</p>}
+            {hasMore && (
+              <button className="load-more-button" type="button" onClick={() => dispatch(fetchCampers(getFilterParams(page + 1)))} disabled={isLoadingMore}>
+                {isLoadingMore ? "Loading..." : "Load more"}
+              </button>
+            )}
+          </>
+        )}
+      </section>
+    </main>
+  );
 }
 
 export default CatalogPage;
+
+
+
